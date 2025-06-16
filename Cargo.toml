@@ -2,5 +2,8 @@
 name = "rlex"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A cursor-based lexer for a valid UTF-8 String"
+repository = "https://github.com/phillip-england/rlex"
 
 [dependencies]
