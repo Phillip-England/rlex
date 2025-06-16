@@ -1,0 +1,303 @@
+
+#[derive(Debug)]
+pub struct Rlex {
+  source: String,
+  chars: Vec<char>,
+  current_position: usize,
+  max_position: usize,
+  current_char: char,
+  marked_position: usize,
+  stash: Vec<char>,
+}
+
+
+impl Rlex {
+
+  pub fn new(source: String) -> Result<Rlex, String> {
+    let chars: Vec<char> = source.chars().collect();
+    if chars.is_empty() {
+      return Err("Rlex must contain at least one character".to_owned());
+    }
+    let length = chars.len();
+    Ok(Rlex {
+      source,
+      chars: chars.clone(),
+      current_position: 0,
+      max_position: length - 1,
+      current_char: chars[0],
+      marked_position: 0,
+      stash: vec!(),
+    })
+  }
+
+  pub fn step_forward(&mut self) {
+    if self.current_position == self.max_position {
+      return;
+    }
+    self.current_position += 1;
+    self.current_char = self.chars[self.current_position];
+  }
+
+  pub fn step_back(&mut self) {
+    if self.current_position == 0 {
+      return;
+    }
+    self.current_position -= 1;
+    self.current_char = self.chars[self.current_position];
+  }
+
+
+  pub fn walk_to_end<F>(&mut self, mut f: F)
+  where
+    F: FnMut(&mut Rlex) -> bool,
+  {
+    loop {
+      let should_continue = f(self);
+      if should_continue == false {
+        break;
+      }
+      if self.current_position == self.max_position {
+        break;
+      }
+      self.step_forward();
+    }
+  }
+
+
+  pub fn walk_to_start<F>(&mut self, mut f: F) 
+  where
+    F: FnMut(&mut Rlex) -> bool,
+  {
+    loop {
+      let should_continue = f(self);
+      if should_continue == false {
+        break;
+      }
+      if self.current_position == 0 {
+        break;
+      }
+      self.step_back();
+    }
+  }
+
+  pub fn walk_forward_until(&mut self, ch: char) -> bool {
+    let mut found = false;
+    self.walk_to_end(|me| {
+      if me.current_char == ch {
+        found = true;
+        return false;
+      }
+      return true;
+    });
+    return found
+  }
+
+  pub fn walk_back_until(&mut self, ch: char) -> bool {
+    let mut found = false;
+    self.walk_to_start(|me| {
+      if me.current_char == ch {
+        found = true;
+        return false;
+      }
+      return true;
+    });
+    return found;
+  }
+
+  pub fn jump_to_end(&mut self) {
+    if self.at_end() {
+      return;
+    }
+    self.current_position = self.max_position;
+    self.current_char = self.chars[self.current_position];
+  }
+
+  pub fn jump_to_start(&mut self) {
+    if self.at_start() {
+      return;
+    }
+    self.current_position = 0;
+    self.current_char = self.chars[self.current_position];
+  }
+
+  pub fn jump_to_mark(&mut self) {
+    self.current_position = self.marked_position;
+    self.current_char = self.chars[self.current_position];
+  }
+
+  pub fn mark_current_position(&mut self) {
+    self.marked_position = self.current_position;
+  }
+
+  pub fn mark_reset(&mut self) {
+    self.marked_position = 0;
+  }
+
+  pub fn stash_current_char(&mut self) {
+    self.stash.push(self.current_char);
+  }
+
+  pub fn stash_flush(&mut self) -> Vec<char> {
+    let flushed: Vec<char> = self.stash.clone();
+    self.stash = vec!();
+    return flushed;
+  }
+
+  pub fn stash_use_mark(&mut self) {
+    let saved = self.current_position;
+    if self.current_position > self.marked_position {
+      self.jump_to_mark();
+      println!("{:?}", self);
+      self.walk_to_end(|me| {
+        me.stash_current_char();
+        if me.current_position == saved {
+          return false;
+        } 
+        return true;
+      });
+      return;
+    }
+    self.walk_to_end(|me| {
+      me.stash_current_char();
+      if me.current_position == me.marked_position {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  pub fn peek_forward(&self, steps: usize) -> Option<char> {
+    if self.current_position < self.max_position {
+      let peek_position = self.current_position + steps;
+      if peek_position > self.max_position {
+        return None;
+      }
+      return Some(self.chars[steps])
+    } else {
+      return None
+    }
+  }
+
+  pub fn peek_back(&self, steps: usize) -> Option<char> {
+      if self.current_position > 0 {
+        let target_position = self.current_position.checked_sub(steps);
+        if target_position.is_none() {
+          return None;
+        }
+        return Some(self.chars[self.current_position - steps])
+      } else {
+        return None
+      }
+  }
+
+  pub fn at_end(&self) -> bool {
+    self.current_position == self.max_position
+  }
+
+  pub fn at_start(&self) -> bool {
+    self.current_position == 0
+  }
+
+
+
+}
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_walk_forward_until() {
+    let mut rlex = Rlex::new("Melody".to_owned()).unwrap();
+    let found = rlex.walk_forward_until('d');
+    assert!(found);
+    assert_eq!(rlex.current_char, 'd');
+  }
+
+  #[test]
+  fn test_walk_back_until() {
+    let mut rlex = Rlex::new("Melody".to_owned()).unwrap();
+    rlex.jump_to_end();
+    let found = rlex.walk_back_until('e');
+    assert!(found);
+    assert_eq!(rlex.current_char, 'e');
+  }
+
+  #[test]
+  fn test_stash_use_mark() {
+    let mut rlex = Rlex::new("abcde".to_owned()).unwrap();
+    rlex.step_forward(); // 'b'
+    rlex.mark_current_position(); // mark at 'b'
+    rlex.step_forward(); // 'c'
+    rlex.step_forward(); // 'd'
+    rlex.stash_use_mark(); // stash b, c, d
+    let stash = rlex.stash_flush();
+    println!("{:?}", stash);
+    assert_eq!(stash, vec!['b', 'c', 'd']);
+  }
+
+  #[test]
+  fn test_peek_forward_and_back() {
+    let mut rlex = Rlex::new("hello".to_owned()).unwrap();
+    assert_eq!(rlex.peek_forward(1), Some('e'));
+    rlex.step_forward(); // move to 'e'
+    assert_eq!(rlex.peek_back(1), Some('h'));
+  }
+
+  #[test]
+  fn test_jump_to_start_and_end() {
+    let mut rlex = Rlex::new("rust".to_owned()).unwrap();
+    rlex.jump_to_end();
+    assert_eq!(rlex.current_char, 't');
+    rlex.jump_to_start();
+    assert_eq!(rlex.current_char, 'r');
+  }
+
+  #[test]
+  fn test_mark_and_jump_to_mark() {
+    let mut rlex = Rlex::new("abcxyz".to_owned()).unwrap();
+    rlex.step_forward(); // 'b'
+    rlex.mark_current_position();
+    rlex.step_forward(); // 'c'
+    rlex.step_forward(); // 'x'
+    assert_eq!(rlex.current_char, 'x');
+    rlex.jump_to_mark(); // back to 'b'
+    assert_eq!(rlex.current_char, 'b');
+  }
+
+  #[test]
+  fn test_stash_flush_and_reset() {
+    let mut rlex = Rlex::new("xyz".to_owned()).unwrap();
+    rlex.stash_current_char(); // 'x'
+    rlex.step_forward();       // 'y'
+    rlex.stash_current_char();
+    let flushed = rlex.stash_flush();
+    assert_eq!(flushed, vec!['x', 'y']);
+    assert!(rlex.stash.is_empty());
+  }
+
+  #[test]
+  fn test_walk_to_end_stops_correctly() {
+    let mut rlex = Rlex::new("abc".to_owned()).unwrap();
+    let mut visited = vec![];
+    rlex.walk_to_end(|me| {
+      visited.push(me.current_char);
+      true
+    });
+    assert_eq!(visited, vec!['a', 'b', 'c']);
+    assert_eq!(rlex.current_char, 'c');
+  }
+
+  #[test]
+  fn test_peek_out_of_bounds_returns_none() {
+    let mut rlex = Rlex::new("go".to_owned()).unwrap();
+    assert_eq!(rlex.peek_forward(5), None);
+    assert_eq!(rlex.peek_back(1), None);
+    rlex.step_forward();
+    assert_eq!(rlex.peek_forward(1), None);
+    assert_eq!(rlex.peek_back(2), None);
+  }
+
+
+}
