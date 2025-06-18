@@ -1,18 +1,19 @@
-
+// Represents a lexer that can traverse, peek, and stash characters from a string source
 #[derive(Debug)]
 pub struct Rlex {
-  source: String,
-  chars: Vec<char>,
-  current_position: usize,
-  max_position: usize,
-  current_char: char,
-  marked_position: usize,
-  stash: Vec<char>,
+  source: String,                 // Original input string
+  chars: Vec<char>,              // Vector of characters from the source
+  current_position: usize,       // Current index in the chars vector
+  max_position: usize,           // Maximum valid index in the chars vector
+  pub current_char: char,        // Currently selected character
+  marked_position: usize,        // Saved position for future reference
+  stash: Vec<char>,              // Temporary storage for selected characters
+  pub state: String,             // Arbitrary state information
 }
-
 
 impl Rlex {
 
+  // Constructs a new Rlex instance from a given string, ensuring it's not empty
   pub fn new(source: String) -> Result<Rlex, String> {
     let chars: Vec<char> = source.chars().collect();
     if chars.is_empty() {
@@ -27,9 +28,11 @@ impl Rlex {
       current_char: chars[0],
       marked_position: 0,
       stash: vec!(),
+      state: "".to_owned(),
     })
   }
 
+  // Advances to the next character if not at the end
   pub fn step_forward(&mut self) {
     if self.current_position == self.max_position {
       return;
@@ -38,6 +41,7 @@ impl Rlex {
     self.current_char = self.chars[self.current_position];
   }
 
+  // Moves one character backward if not at the start
   pub fn step_back(&mut self) {
     if self.current_position == 0 {
       return;
@@ -46,7 +50,7 @@ impl Rlex {
     self.current_char = self.chars[self.current_position];
   }
 
-
+  // Continues moving forward as long as the provided function returns true
   pub fn walk_to_end<F>(&mut self, mut f: F)
   where
     F: FnMut(&mut Rlex) -> bool,
@@ -63,7 +67,7 @@ impl Rlex {
     }
   }
 
-
+  // Continues moving backward as long as the provided function returns true
   pub fn walk_to_start<F>(&mut self, mut f: F) 
   where
     F: FnMut(&mut Rlex) -> bool,
@@ -80,8 +84,10 @@ impl Rlex {
     }
   }
 
+  // Moves forward until the specified character is found
   pub fn walk_forward_until(&mut self, ch: char) -> bool {
     let mut found = false;
+    self.step_forward();
     self.walk_to_end(|me| {
       if me.current_char == ch {
         found = true;
@@ -92,8 +98,10 @@ impl Rlex {
     return found
   }
 
+  // Moves backward until the specified character is found
   pub fn walk_back_until(&mut self, ch: char) -> bool {
     let mut found = false;
+    self.step_back();
     self.walk_to_start(|me| {
       if me.current_char == ch {
         found = true;
@@ -104,6 +112,7 @@ impl Rlex {
     return found;
   }
 
+  // Instantly moves to the end of the input
   pub fn jump_to_end(&mut self) {
     if self.at_end() {
       return;
@@ -112,6 +121,7 @@ impl Rlex {
     self.current_char = self.chars[self.current_position];
   }
 
+  // Instantly moves to the start of the input
   pub fn jump_to_start(&mut self) {
     if self.at_start() {
       return;
@@ -120,29 +130,35 @@ impl Rlex {
     self.current_char = self.chars[self.current_position];
   }
 
+  // Jumps to the previously marked position
   pub fn jump_to_mark(&mut self) {
     self.current_position = self.marked_position;
     self.current_char = self.chars[self.current_position];
   }
 
+  // Marks the current position for later use
   pub fn mark_current_position(&mut self) {
     self.marked_position = self.current_position;
   }
 
+  // Resets the mark to the start
   pub fn mark_reset(&mut self) {
     self.marked_position = 0;
   }
 
+  // Adds the current character to the stash
   pub fn stash_current_char(&mut self) {
     self.stash.push(self.current_char);
   }
 
+  // Clears the stash and returns its contents
   pub fn stash_flush(&mut self) -> Vec<char> {
     let flushed: Vec<char> = self.stash.clone();
     self.stash = vec!();
     return flushed;
   }
 
+  // Fills the stash with characters between the current position and the marked position
   pub fn stash_use_mark(&mut self) {
     let saved = self.current_position;
     if self.current_position > self.marked_position {
@@ -166,6 +182,7 @@ impl Rlex {
     });
   }
 
+  // Peeks forward a number of characters without changing position
   pub fn peek_forward(&self, steps: usize) -> Option<char> {
     if self.current_position < self.max_position {
       let peek_position = self.current_position + steps;
@@ -178,6 +195,7 @@ impl Rlex {
     }
   }
 
+  // Peeks backward a number of characters without changing position
   pub fn peek_back(&self, steps: usize) -> Option<char> {
       if self.current_position > 0 {
         let target_position = self.current_position.checked_sub(steps);
@@ -190,22 +208,77 @@ impl Rlex {
       }
   }
 
+  // Checks if the current position is at the end
   pub fn at_end(&self) -> bool {
     self.current_position == self.max_position
   }
 
+  // Checks if the current position is at the start
   pub fn at_start(&self) -> bool {
     self.current_position == 0
   }
 
-
+  // Determines whether the current position is inside quotes (single or double)
+  pub fn is_in_quotes(&mut self) -> bool {
+    let original_position = self.current_position;
+    let original_char = self.current_char;
+    self.jump_to_start();
+    let mut is_in_little_quotes = false;
+    let mut is_in_big_quotes = false;
+    self.walk_to_end(|me| {
+        if me.current_char == '"' {
+            is_in_big_quotes = !is_in_big_quotes;
+        } else if me.current_char == '\'' {
+            is_in_little_quotes = !is_in_little_quotes;
+        }
+        if me.current_position == original_position {
+            return false;
+        }
+        true
+    });
+    if !is_in_little_quotes && !is_in_big_quotes {
+        self.current_position = original_position;
+        self.current_char = original_char;
+        return false;
+    }
+    self.current_position = original_position;
+    self.current_char = self.chars[original_position];
+    let mut found = false;
+    self.walk_to_end(|me| {
+        if (is_in_big_quotes && me.current_char == '"') ||
+          (is_in_little_quotes && me.current_char == '\'') {
+            found = true;
+            return false;
+        }
+        true
+    });
+    self.current_position = original_position;
+    self.current_char = original_char;
+    found
+  }
 
 }
-
 
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn test_is_in_quote() {
+    let mut rlex = Rlex::new("Someone said \"something big\" but this 'is' not in \"quotes".to_owned()).unwrap();
+    rlex.walk_forward_until('s');
+    rlex.walk_forward_until('s');
+    assert!(rlex.is_in_quotes());
+    rlex.walk_forward_until('b');
+    assert!(rlex.is_in_quotes());
+    rlex.walk_forward_until('b');
+    assert!(!rlex.is_in_quotes());
+    rlex.walk_forward_until('i');
+    rlex.walk_forward_until('i');
+    assert!(rlex.is_in_quotes());
+    rlex.walk_forward_until('i');
+    assert!(!rlex.is_in_quotes());
+  }
 
   #[test]
   fn test_walk_forward_until() {
