@@ -25,6 +25,10 @@ impl Rlex {
         Ok(rlex)
     }
 
+    fn pos(&self) -> usize {
+        return self.position;
+    }
+
     fn next(&mut self) {
         if self.position < self.max_position {
             self.position += 1;
@@ -39,6 +43,15 @@ impl Rlex {
         }
     }
 
+    fn next_until(&mut self, search: char) {
+        while self.char() != search {
+            if self.at_end() {
+                break;
+            }
+            self.next();
+        }
+    }
+
     fn prev(&mut self) {
         if self.position > 0 {
             self.position -= 1;
@@ -49,6 +62,15 @@ impl Rlex {
         while by != 0 {
             self.prev();
             by -= 1;
+        }
+    }
+
+    fn prev_until(&mut self, search: char) {
+        while self.char() != search {
+            if self.at_start() {
+                break;
+            }
+            self.prev();
         }
     }
 
@@ -158,26 +180,38 @@ impl Rlex {
         &self.source[start_byte..start_byte + byte_len]
     }
 
-	fn dump_from_end(&self) -> &str {
-		let start = self.position;
-		let end = self.max_position + 1;
-		let start_byte = self.chars[..start]
-			.iter()
-			.map(|c| c.len_utf8())
-			.sum::<usize>();
-		let byte_len = self.chars[start..end]
-			.iter()
-			.map(|c| c.len_utf8())
-			.sum::<usize>();
-		&self.source[start_byte..start_byte + byte_len]
-	}
-
+    fn dump_from_end(&self) -> &str {
+        let start = self.position;
+        let end = self.max_position + 1;
+        let start_byte = self.chars[..start]
+            .iter()
+            .map(|c| c.len_utf8())
+            .sum::<usize>();
+        let byte_len = self.chars[start..end]
+            .iter()
+            .map(|c| c.len_utf8())
+            .sum::<usize>();
+        &self.source[start_byte..start_byte + byte_len]
+    }
 
     fn is_in_quote(&self) -> bool {
-        let dump_start = self.dump_from_start();
-		let dump_end = self.dump_from_end();
-		println!("{}", dump_start.contains("\""));
-        return true;
+        let mut in_big_quote = false;
+        let mut in_lil_quote = false;
+        let mut escaped = false;
+        for c in self.dump_from_start().chars() {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            if c == '\\' {
+                escaped = true;
+            } else if c == '"' {
+                in_big_quote = !in_big_quote;
+            } else if c == '\'' {
+                in_lil_quote = !in_lil_quote;
+            }
+        }
+        in_big_quote || in_lil_quote
     }
 }
 
@@ -236,14 +270,19 @@ mod tests {
     #[test]
     fn test_rlex_next_by() {
         let mut r = Rlex::new("abcd").unwrap();
-        r.next_by(0); assert!(r.char() == 'a');
-        r.next_by(1); assert!(r.char() == 'b');
+        r.next_by(0);
+        assert!(r.char() == 'a');
+        r.next_by(1);
+        assert!(r.char() == 'b');
         r.goto_start();
-        r.next_by(2); assert!(r.char() == 'c');
+        r.next_by(2);
+        assert!(r.char() == 'c');
         r.goto_start();
-        r.next_by(3); assert!(r.char() == 'd');
+        r.next_by(3);
+        assert!(r.char() == 'd');
         r.goto_start();
-        r.next_by(4); assert!(r.char() == 'd');
+        r.next_by(4);
+        assert!(r.char() == 'd');
     }
 
     #[test]
@@ -287,19 +326,48 @@ mod tests {
     #[test]
     fn test_rlex_dump() {
         let mut r = Rlex::new("abcd").unwrap();
-        r.next(); assert!(r.dump_from_start() == "ab");
-        r.goto_end(); assert!(r.dump_from_start() == "abcd");
+        r.next();
+        assert!(r.dump_from_start() == "ab");
+        r.goto_end();
+        assert!(r.dump_from_start() == "abcd");
         r.prev();
         r.mark();
-        r.next(); assert!(r.dump_from_mark() == "cd");
-		r.goto_start(); assert!(r.dump_from_end() == "abcd");
-		r.next(); assert!(r.dump_from_end() == "bcd");
-		r.next(); assert!(r.dump_from_end() == "cd");
-		r.next(); assert!(r.dump_from_end() == "d");
+        r.next();
+        assert!(r.dump_from_mark() == "cd");
+        r.goto_start();
+        assert!(r.dump_from_end() == "abcd");
+        r.next();
+        assert!(r.dump_from_end() == "bcd");
+        r.next();
+        assert!(r.dump_from_end() == "cd");
+        r.next();
+        assert!(r.dump_from_end() == "d");
     }
 
-	#[test]
-	fn test_rlex_is_in_quote() {
-		assert!(1 == 2);
-	}
+    #[test]
+    fn test_rlex_is_in_quote() {
+        let mut r = Rlex::new("\"Hello, I am Quoted!\"").unwrap();
+        while !r.at_end() {
+            assert!(r.is_in_quote());
+            r.next();
+        }
+        let mut r = Rlex::new("Hello, I am not Quoted!").unwrap();
+        while !r.at_end() {
+            assert!(!r.is_in_quote());
+            r.next();
+        }
+        let mut r = Rlex::new("<p name='bob'>").unwrap();
+        r.next_until('b');
+        assert!(r.is_in_quote());
+    }
+
+    #[test]
+    fn test_rlex_next_until_and_prev_until() {
+        let mut r = Rlex::new("abcd").unwrap();
+        r.next_until('c');
+        assert!(r.pos() == 2);
+        r.next();
+        r.prev_until('b');
+        assert!(r.pos() == 1);
+    }
 }
