@@ -25,96 +25,124 @@ impl Rlex {
         Ok(rlex)
     }
 
-    fn pos(&self) -> usize {
+    pub fn pos(&self) -> usize {
         return self.position;
     }
 
-    fn next(&mut self) {
+    pub fn next(&mut self) -> &Rlex {
         if self.position < self.max_position {
             self.position += 1;
         }
+        return self;
     }
 
-    fn next_by(&mut self, by: usize) {
+    pub fn next_by(&mut self, by: usize) -> &Rlex {
         let mut count = 0;
         while count != by {
             self.next();
             count += 1;
         }
+        return self
     }
 
-    fn next_until(&mut self, search: char) {
+    pub fn next_until(&mut self, search: char) -> &Rlex {
         while self.char() != search {
             if self.at_end() {
                 break;
             }
             self.next();
         }
+        return self;
     }
 
-    fn prev(&mut self) {
+    pub fn next_is(&mut self, check: char) -> bool {
+        return self.peek() == check
+    }
+
+    pub fn next_by_is(&mut self, check: char, by: usize) -> bool {
+        return self.peek_by(by) == check
+    }
+
+    pub fn prev(&mut self) -> &Rlex {
         if self.position > 0 {
             self.position -= 1;
         }
+        return self;
     }
 
-    fn prev_by(&mut self, mut by: usize) {
+    pub fn prev_by(&mut self, mut by: usize) -> &Rlex {
         while by != 0 {
             self.prev();
             by -= 1;
         }
+        return self;
     }
 
-    fn prev_until(&mut self, search: char) {
+    pub fn prev_until(&mut self, search: char) -> &Rlex {
         while self.char() != search {
             if self.at_start() {
                 break;
             }
             self.prev();
         }
+        return self;
     }
 
-    fn char(&self) -> char {
+    pub fn prev_is(&mut self, check: char) -> bool {
+        return self.peek_back() == check
+    }
+
+    pub fn prev_by_is(&mut self, check: char, by: usize) -> bool {
+        return self.peek_back_by(by) == check
+    }
+
+
+    pub fn char(&self) -> char {
         return self.chars[self.position];
     }
 
-    fn at_end(&mut self) -> bool {
+    pub fn at_end(&mut self) -> bool {
         return self.position == self.max_position;
     }
 
-    fn at_start(&mut self) -> bool {
+    pub fn at_start(&mut self) -> bool {
         return self.position == 0;
     }
 
-    fn at_mark(&mut self) -> bool {
+    pub fn at_mark(&mut self) -> bool {
         return self.position == self.marked_position;
     }
 
-    fn mark(&mut self) {
+    pub fn mark(&mut self) -> &Rlex {
         self.marked_position = self.position;
+        return self;
     }
 
-    fn goto_pos(&mut self, pos: usize) {
+    pub fn goto_pos(&mut self, pos: usize) -> &Rlex {
         if pos > self.max_position {
             self.position = self.max_position;
-            return;
+            return self;
         }
         self.position = pos;
+        return self;
     }
 
-    fn goto_mark(&mut self) {
+    pub fn goto_mark(&mut self) -> &Rlex {
         self.position = self.marked_position;
+        return self;
     }
 
-    fn goto_start(&mut self) {
+    pub fn goto_start(&mut self) -> &Rlex {
         self.position = 0;
+        return self;
     }
 
-    fn goto_end(&mut self) {
+    pub fn goto_end(&mut self) -> &Rlex {
         self.position = self.max_position;
+        return self;
     }
 
-    fn peek(&mut self) -> char {
+    pub fn peek(&mut self) -> char {
         let start = self.position;
         self.next();
         let ch = self.char();
@@ -122,7 +150,7 @@ impl Rlex {
         return ch;
     }
 
-    fn peek_by(&mut self, by: usize) -> char {
+    pub fn peek_by(&mut self, by: usize) -> char {
         let start = self.position;
         self.next_by(by);
         let ch = self.char();
@@ -130,7 +158,7 @@ impl Rlex {
         return ch;
     }
 
-    fn peek_back(&mut self) -> char {
+    pub fn peek_back(&mut self) -> char {
         let start = self.position;
         self.prev();
         let ch = self.char();
@@ -138,7 +166,7 @@ impl Rlex {
         return ch;
     }
 
-    fn peek_back_by(&mut self, by: usize) -> char {
+    pub fn peek_back_by(&mut self, by: usize) -> char {
         let start = self.position;
         self.prev_by(by);
         let ch = self.char();
@@ -146,7 +174,7 @@ impl Rlex {
         return ch;
     }
 
-    fn dump_from_mark(&self) -> &str {
+    pub fn str_from_mark(&self) -> &str {
         let (start, end) = if self.marked_position <= self.position {
             (self.marked_position, self.position)
         } else {
@@ -165,7 +193,7 @@ impl Rlex {
         &self.source[start_byte..start_byte + byte_len]
     }
 
-    fn dump_from_start(&self) -> &str {
+    pub fn str_from_start(&self) -> &str {
         let start = 0;
         let end = self.position.min(self.max_position) + 1;
         let start_byte = self.chars[start..end]
@@ -180,7 +208,7 @@ impl Rlex {
         &self.source[start_byte..start_byte + byte_len]
     }
 
-    fn dump_from_end(&self) -> &str {
+    pub fn str_from_end(&self) -> &str {
         let start = self.position;
         let end = self.max_position + 1;
         let start_byte = self.chars[..start]
@@ -194,11 +222,11 @@ impl Rlex {
         &self.source[start_byte..start_byte + byte_len]
     }
 
-    fn is_in_quote(&self) -> bool {
+    pub fn is_in_quote(&self) -> bool {
         let mut in_big_quote = false;
         let mut in_lil_quote = false;
         let mut escaped = false;
-        for c in self.dump_from_start().chars() {
+        for c in self.str_from_start().chars() {
             if escaped {
                 escaped = false;
                 continue;
@@ -213,6 +241,8 @@ impl Rlex {
         }
         in_big_quote || in_lil_quote
     }
+
+
 }
 
 #[cfg(test)]
@@ -327,21 +357,21 @@ mod tests {
     fn test_rlex_dump() {
         let mut r = Rlex::new("abcd").unwrap();
         r.next();
-        assert!(r.dump_from_start() == "ab");
+        assert!(r.str_from_start() == "ab");
         r.goto_end();
-        assert!(r.dump_from_start() == "abcd");
+        assert!(r.str_from_start() == "abcd");
         r.prev();
         r.mark();
         r.next();
-        assert!(r.dump_from_mark() == "cd");
+        assert!(r.str_from_mark() == "cd");
         r.goto_start();
-        assert!(r.dump_from_end() == "abcd");
+        assert!(r.str_from_end() == "abcd");
         r.next();
-        assert!(r.dump_from_end() == "bcd");
+        assert!(r.str_from_end() == "bcd");
         r.next();
-        assert!(r.dump_from_end() == "cd");
+        assert!(r.str_from_end() == "cd");
         r.next();
-        assert!(r.dump_from_end() == "d");
+        assert!(r.str_from_end() == "d");
     }
 
     #[test]
@@ -370,4 +400,23 @@ mod tests {
         r.prev_until('b');
         assert!(r.pos() == 1);
     }
+
+    #[test]
+    fn test_rlex_surrounding_comparisons() {
+        let mut r = Rlex::new("abcd").unwrap();
+        assert!(r.next_is('b'));
+        assert!(r.next_by_is('a', 0));
+        assert!(r.next_by_is('b', 1));
+        assert!(r.next_by_is('c', 2));
+        assert!(r.next_by_is('d', 3));
+        assert!(r.next_by_is('d', 4));
+        r.goto_end();
+        assert!(r.prev_is('c'));
+        assert!(r.prev_by_is('d', 0));
+        assert!(r.prev_by_is('c', 1));
+        assert!(r.prev_by_is('b', 2));
+        assert!(r.prev_by_is('a', 3));
+        assert!(r.prev_by_is('a', 4));
+    }
+
 }

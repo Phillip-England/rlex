@@ -1,62 +1,90 @@
 # Rlex
 
-## Outline
-1. **Introduction**
-2. **Installation**
-3. **Usage**
-   - Constructor
-   - Navigation Methods
-   - Peek Methods
-   - Mark and Jump Methods
-   - Stash Methods
-   - State and Quotes Utilities
-4. **Caveats / Gotchas**
-
----
-
-## Introduction
-**Rlex** is a lightweight Rust lexer utility for traversing and analyzing string inputs character-by-character. It supports controlled navigation (forwards and backwards), marking and jumping to positions, stashing characters, and even checking for quoted sections in text.
+**Rlex** is a lightweight lexer utility for traversing, peeking, and extracting parts of a UTF-8 string. It operates on a `Vec<char>` and retains the original string to allow for accurate byte-range slicing. It is ideal for building scanners, parsers, or any tool that needs detailed and controlled inspection of characters in a string.
 
 ## Installation
-Include `rlex.rs` in your project and ensure it's compiled with the rest of your application. You can also structure it as a module in a larger Rust crate.
 
-```rust
+Install via `cargo`
+
+```sh
 cargo add rlex
 ```
 
-## Usage
+---
 
-### Constructor
+## Features
+
+### Creating a Lexer
+
 ```rust
-let mut rlex = Rlex::new("your string here".to_owned()).unwrap();
+let r = Rlex::new("hello").unwrap();
 ```
-Creates a new Rlex instance. Panics if the string is empty.
 
-### Navigation Methods
-- `step_forward()` / `step_back()`: Moves one character forward or backward.
-- `walk_to_end(F)` / `walk_to_start(F)`: Traverse based on a closure returning a bool.
-- `walk_forward_until(char)` / `walk_back_until(char)`: Stop walking when a specific character is found.
-- `jump_to_end()` / `jump_to_start()`: Jump to ends of the string.
-- `jump_to_mark()`: Jump to a previously marked position.
+### Position Utilities
 
-### Peek Methods
-- `peek_forward(steps)` / `peek_back(steps)`: Look ahead or behind without moving the current position.
+```rust
+r.pos();            // Current position
+r.mark();           // Mark current position
+r.goto_start();     // Go to start of input
+r.goto_end();       // Go to end of input
+r.goto_pos(2);      // Go to a specific position
+r.goto_mark();      // Go back to marked position
+```
 
-### Mark and Jump Methods
-- `mark_current_position()`: Save the current position.
-- `mark_reset()`: Reset mark to the start.
+### Navigation
 
-### Stash Methods
-- `stash_current_char()`: Save the current character to stash.
-- `stash_flush()`: Clear and return the stash.
-- `stash_use_mark()`: Fill stash with characters between current and marked positions.
+```rust
+r.next();           // Move forward one
+r.next_by(3);       // Move forward by n
+r.prev();           // Move backward one
+r.prev_by(2);       // Move backward by n
+r.next_until('x');  // Advance until char
+r.prev_until('x');  // Rewind until char
+```
 
-### State and Quotes Utilities
-- `at_start()` / `at_end()`: Checks for boundaries.
-- `is_in_quotes()`: Detects if the current character is inside a quoted section (single or double quotes).
+### Peeking
 
-## Caveats / Gotchas
-- `new()` returns an error if initialized with an empty string.
-- `peek_forward()` and `peek_back()` return `None` if the peek would go out of bounds.
-- `is_in_quotes()` involves jumping to start, traversing, and returning to the original position. Use with caution in performance-sensitive code.
-- `stash_use_mark()` prints internal debug info using `println!`, which may be undesired in production. Remove or comment out if necessary.
+```rust
+r.peek();            // Look at next char
+r.peek_by(2);        // Look ahead by n
+r.peek_back();       // Look behind one
+r.peek_back_by(3);   // Look back by n
+```
+
+### Char Checks
+
+```rust
+r.char();             // Get current char
+r.next_is('x');       // Check if next char is x
+r.next_by_is('x', 2); // Check if x is n chars ahead
+r.prev_is('x');       // Check if previous char is x
+r.prev_by_is('x', 3); // Check if x is n chars behind
+```
+
+### Position Queries
+
+```rust
+r.at_start();     // At beginning?
+r.at_end();       // At end?
+r.at_mark();      // At previously marked spot?
+```
+
+### String Extraction
+
+```rust
+r.str_from_mark();  // Slice from mark to current
+r.str_from_start(); // Slice from start to current
+r.str_from_end();   // Slice from current to end
+```
+
+### Quote Detection
+
+```rust
+r.is_in_quote(); // Returns true if current position is inside a quote block
+```
+
+---
+
+## License
+
+This project is licensed under the MIT License.
