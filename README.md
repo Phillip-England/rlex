@@ -16,8 +16,26 @@ cargo add rlex
 
 ### Creating a Lexer
 
+First, you need an enum to represent the state of your lexer:
 ```rust
-let r = Rlex::new("hello").unwrap();
+#[derive(Debug, PartialEq, Eq)]
+enum MyState {
+    Init,
+    Open,
+    Closed,
+}
+```
+
+Then use the enum to create a new lexer:
+```rust
+let r = Rlex::new("hello", MyState::Init).unwrap();
+```
+
+### State Handling
+
+```rust
+r.state();              // Get a reference to the current state
+r.state_set(MyState::Open);  // Set a new state
 ```
 
 ### Position Utilities
