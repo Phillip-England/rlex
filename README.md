@@ -94,6 +94,7 @@ r.str_from_mark();  // Slice from mark to current
 r.str_from_start(); // Slice from start to current
 r.str_from_end();   // Slice from current to end
 r.str_from_collection(); // Convert the collection into a slice
+r.str_from_rng(0, 2); // Index-based slice from source 
 ```
 
 ### Quote Detection
