@@ -93,12 +93,21 @@ r.at_mark();      // At previously marked spot?
 r.str_from_mark();  // Slice from mark to current
 r.str_from_start(); // Slice from start to current
 r.str_from_end();   // Slice from current to end
+r.str_from_collection(); // Convert the collection into a slice
 ```
 
 ### Quote Detection
 
 ```rust
 r.is_in_quote(); // Returns true if current position is inside a quote block
+```
+
+### Collecting Characters
+
+```rust
+r.collect(); // Collect the character at the current position
+r.collect_pop(); // Get the newest character added to the collection
+r.collect_push('a'); // Push a character of your choice into the collection
 ```
 
 ---

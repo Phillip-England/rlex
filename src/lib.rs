@@ -7,6 +7,8 @@ pub struct Rlex<T> {
     max_position: usize,
     marked_position: usize,
     state: T,
+    collection: Vec<char>,
+    collection_str: String,
 }
 
 impl<T> Rlex<T> {
@@ -23,6 +25,8 @@ impl<T> Rlex<T> {
             max_position: length - 1,
             marked_position: 0,
             state: state,
+            collection: vec![],
+            collection_str: "".to_owned(),
         };
         Ok(rlex)
     }
@@ -250,6 +254,30 @@ impl<T> Rlex<T> {
         }
         in_big_quote || in_lil_quote
     }
+
+    pub fn collect(&mut self) {
+        self.collection.push(self.char());
+    } 
+
+    pub fn str_from_collection(&mut self) -> &str {
+        self.collection_str = self.collection.iter().collect();
+        return &self.collection_str;
+    }
+
+    pub fn collect_reset(&mut self) {
+        self.collection = vec![];
+        self.collection_str = "".to_owned();
+    }
+
+    pub fn collect_pop(&mut self) -> Option<char> {
+        return self.collection.pop()
+    }
+
+    pub fn collect_push(&mut self, c: char) {
+        self.collection.push(c);
+    }
+
+
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -440,4 +468,18 @@ mod tests {
         r.state_set(State::Open);
         assert!(r.state() == &State::Open);
     }
+
+    #[test]
+    fn test_rlex_collect() {
+        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        r.collect();
+        assert!(r.str_from_collection() == "a");
+        let c = r.collect_pop();
+        assert!(c.unwrap() == 'a');
+        r.collect_push('a');
+        assert!(r.str_from_collection() == "a");
+        r.collect_reset();
+        assert!(r.str_from_collection() == "");
+    }
+
 }
