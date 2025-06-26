@@ -117,6 +117,7 @@ r.collect_push('a'); // Push a character of your choice into the collection
 r.token_push("some str"); // Push a token into the collection
 r.token_pop(); // Remove and obtain the last token in the collection
 r.token_peek_last(); // Peek at the last token in the collection
+r.token_all(); // Get all the tokens
 ```
 
 ---

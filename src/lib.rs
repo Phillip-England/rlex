@@ -39,6 +39,11 @@ impl<T> Rlex<T> {
         Ok(rlex)
     }
 
+    /// Get the stashed tokens
+    pub fn token_all(&self) -> Vec<String> {
+        return self.tokens.clone();
+    }
+
     /// Adds a token to the stack.
     pub fn token_push(&mut self, tok: &str) {
         self.tokens.push(tok.to_owned());
