@@ -10,6 +10,7 @@ pub struct Rlex<T> {
     state: T,
     collection: Vec<char>,
     collection_str: String,
+    tokens: Vec<String>,
 }
 
 impl<T> Rlex<T> {
@@ -33,8 +34,24 @@ impl<T> Rlex<T> {
             state,
             collection: vec![],
             collection_str: "".to_owned(),
+            tokens: vec![],
         };
         Ok(rlex)
+    }
+
+    /// Adds a token to the stack.
+    pub fn token_push(&mut self, tok: &str) {
+        self.tokens.push(tok.to_owned());
+    }
+
+    /// Removes and returns the last token.
+    pub fn token_pop(&mut self) -> Option<String> {
+        self.tokens.pop()
+    }
+
+    /// Returns the last token without removing it.
+    pub fn token_peek_last(&self) -> Option<&str> {
+        self.tokens.last().map(|s| s.as_str())
     }
 
     /// Returns a reference to the current state.

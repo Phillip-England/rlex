@@ -111,6 +111,14 @@ r.collect_pop(); // Get the newest character added to the collection
 r.collect_push('a'); // Push a character of your choice into the collection
 ```
 
+### Working With Tokens
+
+```rust
+r.token_push("some str"); // Push a token into the collection
+r.token_pop(); // Remove and obtain the last token in the collection
+r.token_peek_last(); // Peek at the last token in the collection
+```
+
 ---
 
 ## License
