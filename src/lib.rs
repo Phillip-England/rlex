@@ -1,28 +1,25 @@
 /// A generic lexer that allows traversal, peeking, marking, and collection of characters
 /// from a string source. Useful for building parsers or tokenizers.
 #[derive(Debug)]
-pub struct Rlex<T> {
+pub struct Rlex<S, T> {
     source: String,
     chars: Vec<char>,
     position: usize,
     max_position: usize,
     marked_position: usize,
-    state: T,
+    state: S,
     collection: Vec<char>,
     collection_str: String,
-    tokens: Vec<String>,
+    tokens: Vec<T>,
 }
 
-impl<T> Rlex<T> {
+impl<S, T> Rlex<S, T> {
     /// Creates a new lexer from a non-empty string and an initial state.
     ///
     /// # Errors
     ///
     /// Returns an error if the source string is empty.
-    pub fn new(source: &str, state: T) -> Result<Rlex<T>, String> {
-        if source.is_empty() {
-            return Err("MALFORMED INPUT: rlex does not accept empty strings".to_owned());
-        }
+    pub fn new(source: &str, state: S) -> Rlex<S, T> {
         let chars: Vec<char> = source.chars().collect();
         let length = chars.len();
         let rlex = Rlex {
@@ -36,36 +33,36 @@ impl<T> Rlex<T> {
             collection_str: "".to_owned(),
             tokens: vec![],
         };
-        Ok(rlex)
+        rlex
     }
 
     /// Get the stashed tokens
-    pub fn token_all(&self) -> Vec<String> {
-        return self.tokens.clone();
+    pub fn token_all(&self) -> &Vec<T> {
+        return &self.tokens;
     }
 
     /// Adds a token to the stack.
-    pub fn token_push(&mut self, tok: &str) {
-        self.tokens.push(tok.to_owned());
+    pub fn token_push(&mut self, tok: T) {
+        return self.tokens.push(tok);
     }
 
     /// Removes and returns the last token.
-    pub fn token_pop(&mut self) -> Option<String> {
-        self.tokens.pop()
+    pub fn token_pop(&mut self) -> Option<T> {
+        return self.tokens.pop()
     }
 
     /// Returns the last token without removing it.
-    pub fn token_peek_last(&self) -> Option<&str> {
-        self.tokens.last().map(|s| s.as_str())
+    pub fn token_prev(&self) -> Option<&T> {
+        return self.tokens.last().map(|s| s);
     }
 
     /// Returns a reference to the current state.
-    pub fn state(&self) -> &T {
+    pub fn state(&self) -> &S {
         &self.state
     }
 
     /// Sets the current state.
-    pub fn state_set(&mut self, state: T) {
+    pub fn state_set(&mut self, state: S) {
         self.state = state;
     }
 
@@ -75,7 +72,7 @@ impl<T> Rlex<T> {
     }
 
     /// Advances the lexer by one character, unless already at the end.
-    pub fn next(&mut self) -> &Rlex<T> {
+    pub fn next(&mut self) -> &Rlex<S, T> {
         if self.position < self.max_position {
             self.position += 1;
         }
@@ -83,7 +80,7 @@ impl<T> Rlex<T> {
     }
 
     /// Advances the lexer by a specified number of characters.
-    pub fn next_by(&mut self, by: usize) -> &Rlex<T> {
+    pub fn next_by(&mut self, by: usize) -> &Rlex<S, T> {
         let mut count = 0;
         while count != by {
             self.next();
@@ -93,7 +90,7 @@ impl<T> Rlex<T> {
     }
 
     /// Advances the lexer until a specific character is found or end is reached.
-    pub fn next_until(&mut self, search: char) -> &Rlex<T> {
+    pub fn next_until(&mut self, search: char) -> &Rlex<S, T> {
         while self.char() != search {
             if self.at_end() {
                 break;
@@ -114,7 +111,7 @@ impl<T> Rlex<T> {
     }
 
     /// Moves the lexer back by one character, unless at the start.
-    pub fn prev(&mut self) -> &Rlex<T> {
+    pub fn prev(&mut self) -> &Rlex<S, T> {
         if self.position > 0 {
             self.position -= 1;
         }
@@ -122,7 +119,7 @@ impl<T> Rlex<T> {
     }
 
     /// Moves the lexer back by a specified number of characters.
-    pub fn prev_by(&mut self, mut by: usize) -> &Rlex<T> {
+    pub fn prev_by(&mut self, mut by: usize) -> &Rlex<S, T> {
         while by != 0 {
             self.prev();
             by -= 1;
@@ -131,7 +128,7 @@ impl<T> Rlex<T> {
     }
 
     /// Moves the lexer backward until a specific character is found or start is reached.
-    pub fn prev_until(&mut self, search: char) -> &Rlex<T> {
+    pub fn prev_until(&mut self, search: char) -> &Rlex<S, T> {
         while self.char() != search {
             if self.at_start() {
                 break;
@@ -172,13 +169,13 @@ impl<T> Rlex<T> {
     }
 
     /// Marks the current position.
-    pub fn mark(&mut self) -> &Rlex<T> {
+    pub fn mark(&mut self) -> &Rlex<S, T> {
         self.marked_position = self.position;
         self
     }
 
     /// Moves the current position to a specific index.
-    pub fn goto_pos(&mut self, pos: usize) -> &Rlex<T> {
+    pub fn goto_pos(&mut self, pos: usize) -> &Rlex<S, T> {
         if pos > self.max_position {
             self.position = self.max_position;
             return self;
@@ -188,19 +185,19 @@ impl<T> Rlex<T> {
     }
 
     /// Moves the current position back to the previously marked index.
-    pub fn goto_mark(&mut self) -> &Rlex<T> {
+    pub fn goto_mark(&mut self) -> &Rlex<S, T> {
         self.position = self.marked_position;
         self
     }
 
     /// Moves the current position to the start of the input.
-    pub fn goto_start(&mut self) -> &Rlex<T> {
+    pub fn goto_start(&mut self) -> &Rlex<S, T> {
         self.position = 0;
         self
     }
 
     /// Moves the current position to the end of the input.
-    pub fn goto_end(&mut self) -> &Rlex<T> {
+    pub fn goto_end(&mut self) -> &Rlex<S, T> {
         self.position = self.max_position;
         self
     }
@@ -370,22 +367,34 @@ enum State {
     Closed,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum Token {
+    Tok1,
+    Tok2,
+    Tok3,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+
+
     #[test]
-    fn test_empty_rlex_throws_error() {
-        let rlex = Rlex::new("", State::Init);
-        if rlex.is_ok() {
-            panic!("rlex should not accept empty strings");
-        }
-        assert!(rlex.is_err());
+    fn test_tokens() {
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
+        r.token_push(Token::Tok1);
+        assert!(r.token_prev().unwrap() == &Token::Tok1);
+        assert!(r.token_pop().unwrap() == Token::Tok1);
+        assert!(r.token_prev() == None);
+        r.token_push(Token::Tok1);
+        r.token_push(Token::Tok2);
+        assert!(r.token_all() == &vec![Token::Tok1, Token::Tok2]);
     }
 
     #[test]
     fn test_rlex_next_and_prev() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         assert_eq!(r.char(), 'a');
         r.next();
         assert_eq!(r.char(), 'b');
@@ -411,7 +420,7 @@ mod tests {
 
     #[test]
     fn test_rlex_at_start_and_at_end() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         while !r.at_end() {
             r.next();
         }
@@ -424,7 +433,7 @@ mod tests {
 
     #[test]
     fn test_rlex_next_by() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         r.next_by(0);
         assert!(r.char() == 'a');
         r.next_by(1);
@@ -442,7 +451,7 @@ mod tests {
 
     #[test]
     fn test_rlex_peek() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         assert!(r.peek() == 'b');
         r.goto_end();
         assert!(r.peek() == 'd');
@@ -450,7 +459,7 @@ mod tests {
 
     #[test]
     fn test_rlex_peek_by() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         assert!(r.peek_by(0) == 'a');
         assert!(r.peek_by(1) == 'b');
         assert!(r.peek_by(2) == 'c');
@@ -460,7 +469,7 @@ mod tests {
 
     #[test]
     fn test_rlex_peek_back() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         r.goto_end();
         assert!(r.peek_back() == 'c');
         r.goto_start();
@@ -469,7 +478,7 @@ mod tests {
 
     #[test]
     fn test_rlex_peek_back_by() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         r.goto_end();
         assert!(r.peek_back_by(0) == 'd');
         assert!(r.peek_back_by(1) == 'c');
@@ -480,7 +489,7 @@ mod tests {
 
     #[test]
     fn test_rlex_str_from() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         r.next();
         assert!(r.str_from_start() == "ab");
         r.goto_end();
@@ -507,24 +516,24 @@ mod tests {
 
     #[test]
     fn test_rlex_is_in_quote() {
-        let mut r = Rlex::new("\"Hello, I am Quoted!\"", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("\"Hello, I am Quoted!\"", State::Init);
         while !r.at_end() {
             assert!(r.is_in_quote());
             r.next();
         }
-        let mut r = Rlex::new("Hello, I am not Quoted!", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("Hello, I am not Quoted!", State::Init);
         while !r.at_end() {
             assert!(!r.is_in_quote());
             r.next();
         }
-        let mut r = Rlex::new("<p name='bob'>", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("<p name='bob'>", State::Init);
         r.next_until('b');
         assert!(r.is_in_quote());
     }
 
     #[test]
     fn test_rlex_next_until_and_prev_until() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         r.next_until('c');
         assert!(r.pos() == 2);
         r.next();
@@ -534,7 +543,7 @@ mod tests {
 
     #[test]
     fn test_rlex_surrounding_comparisons() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         assert!(r.next_is('b'));
         assert!(r.next_by_is('a', 0));
         assert!(r.next_by_is('b', 1));
@@ -552,7 +561,7 @@ mod tests {
 
     #[test]
     fn test_rlex_state() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         assert!(r.state() == &State::Init);
         r.state_set(State::Open);
         assert!(r.state() == &State::Open);
@@ -560,7 +569,7 @@ mod tests {
 
     #[test]
     fn test_rlex_collect() {
-        let mut r = Rlex::new("abcd", State::Init).unwrap();
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         r.collect();
         assert!(r.str_from_collection() == "a");
         let c = r.collect_pop();

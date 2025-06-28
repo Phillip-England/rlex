@@ -16,7 +16,7 @@ cargo add rlex
 
 ### Creating a Lexer
 
-First, you need an enum to represent the state of your lexer:
+First, you need an enum to represent the state of your lexer and a token type:
 ```rust
 #[derive(Debug, PartialEq, Eq)]
 enum MyState {
@@ -24,11 +24,18 @@ enum MyState {
     Open,
     Closed,
 }
+
+#[derive(Debug, PartialEq, Eq)]
+enum MyToken {
+    Tok1,
+    Tok2,
+    Tok3,
+}
 ```
 
-Then use the enum to create a new lexer:
+Then use the enums to create a new lexer:
 ```rust
-let r = Rlex::new("hello", MyState::Init).unwrap();
+let r: Rlex<MyState, MyToken> = Rlex::new("hello", MyState::Init);
 ```
 
 ### State Handling
@@ -114,9 +121,9 @@ r.collect_push('a'); // Push a character of your choice into the collection
 ### Working With Tokens
 
 ```rust
-r.token_push("some str"); // Push a token into the collection
+r.token_push(MyToken::Tok1); // Push a token into the collection
 r.token_pop(); // Remove and obtain the last token in the collection
-r.token_peek_last(); // Peek at the last token in the collection
+r.token_prev(); // Peek at the last token in the collection
 r.token_all(); // Get all the tokens
 ```
 
