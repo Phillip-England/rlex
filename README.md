@@ -124,7 +124,7 @@ r.collect_push('a'); // Push a character of your choice into the collection
 r.token_push(MyToken::Tok1); // Push a token into the collection
 r.token_pop(); // Remove and obtain the last token in the collection
 r.token_prev(); // Peek at the last token in the collection
-r.token_all(); // Get all the tokens
+r.token_consume(); // Consumes the lexer and outputs the collected tokens
 ```
 
 ---
