@@ -37,8 +37,8 @@ impl<S, T> Rlex<S, T> {
     }
 
     /// Get the stashed tokens
-    pub fn token_all(&self) -> &Vec<T> {
-        return &self.tokens;
+    pub fn token_consume(self) -> Vec<T> {
+        return self.tokens;
     }
 
     /// Adds a token to the stack.
@@ -367,7 +367,7 @@ enum State {
     Closed,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum Token {
     Tok1,
     Tok2,
@@ -389,7 +389,7 @@ mod tests {
         assert!(r.token_prev() == None);
         r.token_push(Token::Tok1);
         r.token_push(Token::Tok2);
-        assert!(r.token_all() == &vec![Token::Tok1, Token::Tok2]);
+        assert!(r.token_consume() == vec![Token::Tok1, Token::Tok2]);
     }
 
     #[test]
