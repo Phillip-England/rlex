@@ -534,6 +534,8 @@ mod tests {
             assert!(r.is_in_quote());
             r.next();
         }
+        assert!(!r.is_in_quote());
+        assert!(r.char() == '"');
         let mut r: Rlex<State, Token> = Rlex::new("Hello, I am not Quoted!", State::Init);
         while !r.at_end() {
             assert!(!r.is_in_quote());
@@ -542,6 +544,9 @@ mod tests {
         let mut r: Rlex<State, Token> = Rlex::new("<p name='bob'>", State::Init);
         r.next_until('b');
         assert!(r.is_in_quote());
+        r.next_until('\'');
+        assert!(r.char() == '\'');
+        assert!(!r.is_in_quote());
     }
 
     #[test]
