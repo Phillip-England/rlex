@@ -104,6 +104,7 @@ r.at_mark();      // At previously marked spot?
 ### String Extraction
 
 ```rust
+r.src() // Read the Lexer source
 r.str_from_mark();  // Slice from mark to current
 r.str_from_start(); // Slice from start to current
 r.str_from_end();   // Slice from current to end

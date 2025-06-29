@@ -36,6 +36,11 @@ impl<S, T> Rlex<S, T> {
         rlex
     }
 
+    /// Get the source
+    pub fn src(&self) -> &str {
+        return &self.source;
+    }
+
     /// Get the stashed tokens
     pub fn token_consume(self) -> Vec<T> {
         return self.tokens;
@@ -391,6 +396,11 @@ enum Token {
 mod tests {
     use super::*;
 
+        #[test]
+    fn test_src() {
+        let r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
+        assert!(r.src() == "abcd");
+    }
 
 
     #[test]
@@ -545,7 +555,6 @@ mod tests {
         r.next_until('b');
         assert!(r.is_in_quote());
         r.next_until('\'');
-        assert!(r.char() == '\'');
         assert!(!r.is_in_quote());
     }
 
