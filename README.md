@@ -38,6 +38,13 @@ Then use the enums to create a new lexer:
 let r: Rlex<MyState, MyToken> = Rlex::new("hello", MyState::Init);
 ```
 
+### Using Default State / Default Token
+If you don't care to collect tokens or track state, use `DefaultState` and `DefaultToken` upon initalization.
+
+```rust
+let r: Rlex<DefaultState, DefaultToken> = Rlex::new("hello", DefaultState::Default);
+```
+
 ### State Handling
 
 ```rust

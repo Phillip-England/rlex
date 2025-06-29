@@ -360,6 +360,19 @@ impl<S, T> Rlex<S, T> {
 }
 
 
+/// A public default state for when you want an Rlex and don't care about the state
+#[derive(Debug, PartialEq, Eq)]
+pub enum DefaultState {
+    Default,
+}
+
+/// A public default token for when you want an Rlex and don't care to collect tokens
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum DefaultToken {
+    Default,
+}
+
+
 #[derive(Debug, PartialEq, Eq)]
 enum State {
     Init,
