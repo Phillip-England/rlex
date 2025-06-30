@@ -36,6 +36,11 @@ impl<S, T> Rlex<S, T> {
         rlex
     }
 
+    /// Get a reference to the tokens
+    pub fn toks(&self) -> &Vec<T> {
+        return &self.tokens
+    }
+
     /// Get the source
     pub fn src(&self) -> &str {
         return &self.source;
