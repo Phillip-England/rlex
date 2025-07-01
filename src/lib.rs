@@ -11,6 +11,8 @@ pub struct Rlex<S, T> {
     collection: Vec<char>,
     collection_str: String,
     tokens: Vec<T>,
+    should_trace: bool,
+    trace_file: String,
 }
 
 impl<S, T> Rlex<S, T> {
@@ -32,8 +34,20 @@ impl<S, T> Rlex<S, T> {
             collection: vec![],
             collection_str: "".to_owned(),
             tokens: vec![],
+            should_trace: false,
+            trace_file: "./temp/rlex_trace.log".to_string(),
         };
         rlex
+    }
+
+    /// Turns on the trace system
+    pub fn trace_enable(&mut self) {
+        self.should_trace = true;
+    }
+
+    /// Turns off the trace system
+    pub fn trace_disable(&mut self) {
+        self.should_trace = false;
     }
 
     /// Get a reference to the tokens
