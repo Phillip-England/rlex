@@ -125,6 +125,7 @@ r.is_in_quote(); // Returns true if current position is inside a quote block
 r.collect(); // Collect the character at the current position
 r.collect_pop(); // Get the newest character added to the collection
 r.collect_push('a'); // Push a character of your choice into the collection
+r.collect_clear(); // Clears the current collection
 ```
 
 ### Working With Tokens

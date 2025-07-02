@@ -12,10 +12,14 @@ pub struct Rlex<S, T> {
     collection_str: String,
     tokens: Vec<T>,
     should_trace: bool,
-    trace_file: String,
+    trace: Vec<String>,
 }
 
-impl<S, T> Rlex<S, T> {
+impl<S, T> Rlex<S, T> 
+where 
+    T: std::fmt::Debug,
+    S: std::fmt::Debug,
+{
     /// Creates a new lexer from a non-empty string and an initial state.
     ///
     /// # Errors
@@ -35,28 +39,52 @@ impl<S, T> Rlex<S, T> {
             collection_str: "".to_owned(),
             tokens: vec![],
             should_trace: false,
-            trace_file: "./temp/rlex_trace.log".to_string(),
+            trace: vec![],
         };
         rlex
     }
 
     /// Turns on the trace system
-    pub fn trace_enable(&mut self) {
+    pub fn trace_on(&mut self) {
         self.should_trace = true;
     }
 
     /// Turns off the trace system
-    pub fn trace_disable(&mut self) {
+    pub fn trace_off(&mut self) {
         self.should_trace = false;
     }
 
+    /// If the trace is on, will push the msg to into the trace
+    pub fn trace_log(&mut self, msg: &str) {
+        self.trace.push(format!("{}:{}", self.trace.len(), msg.to_string()+"\n"));
+    }
+
+    /// Converts the trace into a String and returns it
+    pub fn trace_emit(&self) -> String {
+        let mut trace = "".to_string();
+        for s in &self.trace {
+            trace += &s;
+        }
+        return trace;
+    }   
+
+    pub fn trace_clear(&mut self) {
+        self.trace = vec![];
+    }
+ 
     /// Get a reference to the tokens
-    pub fn toks(&self) -> &Vec<T> {
+    pub fn toks(&mut self) -> &Vec<T> {
+        if self.should_trace {
+            self.trace_log(&format!("toks() -> {:?}", self.tokens));
+        }
         return &self.tokens
     }
 
     /// Get the source
-    pub fn src(&self) -> &str {
+    pub fn src(&mut self) -> &str {
+        if self.should_trace {
+            self.trace_log(&format!("src()"));
+        }
         return &self.source;
     }
 
@@ -67,36 +95,58 @@ impl<S, T> Rlex<S, T> {
 
     /// Adds a token to the stack.
     pub fn token_push(&mut self, tok: T) {
+        if self.should_trace {
+            self.trace_log(&format!("token_push({:?})", tok));
+        }
         return self.tokens.push(tok);
     }
 
     /// Removes and returns the last token.
     pub fn token_pop(&mut self) -> Option<T> {
-        return self.tokens.pop()
+        let tok = self.tokens.pop();
+        if self.should_trace {
+            self.trace_log(&format!("token_pop() -> {:?}", tok));
+        }
+        return tok;
     }
 
     /// Returns the last token without removing it.
-    pub fn token_prev(&self) -> Option<&T> {
+    pub fn token_prev(&mut self) -> Option<&T> {
+        if self.should_trace {
+            self.trace_log(&format!("token_prev() -> {:?}", self.tokens.last().map(|s| s)));
+        }
         return self.tokens.last().map(|s| s);
     }
 
     /// Returns a reference to the current state.
-    pub fn state(&self) -> &S {
+    pub fn state(&mut self) -> &S {
+        if self.should_trace {
+            self.trace_log(&format!("state() -> {:?}", &self.state));
+        }
         &self.state
     }
 
     /// Sets the current state.
     pub fn state_set(&mut self, state: S) {
+        if self.should_trace {
+            self.trace_log(&format!("state_set({:?})", state));
+        }
         self.state = state;
     }
 
     /// Returns the current character index position.
-    pub fn pos(&self) -> usize {
+    pub fn pos(&mut self) -> usize {
+        if self.should_trace {
+            self.trace_log(&format!("pos() -> {}", self.position));
+        }
         self.position
     }
 
     /// Advances the lexer by one character, unless already at the end.
     pub fn next(&mut self) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("next()"));
+        }
         if self.position < self.max_position {
             self.position += 1;
         }
@@ -105,6 +155,9 @@ impl<S, T> Rlex<S, T> {
 
     /// Advances the lexer by a specified number of characters.
     pub fn next_by(&mut self, by: usize) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("next_by({})", by))
+        }
         let mut count = 0;
         while count != by {
             self.next();
@@ -115,6 +168,9 @@ impl<S, T> Rlex<S, T> {
 
     /// Advances the lexer until a specific character is found or end is reached.
     pub fn next_until(&mut self, search: char) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("next_until({})", search));
+        }
         while self.char() != search {
             if self.at_end() {
                 break;
@@ -126,16 +182,25 @@ impl<S, T> Rlex<S, T> {
 
     /// Checks if the next character matches the given character.
     pub fn next_is(&mut self, check: char) -> bool {
+        if self.should_trace {
+            self.trace_log(&format!("next_is({})", check));
+        }
         self.peek() == check
     }
 
     /// Checks if the character `by` positions ahead matches the given character.
     pub fn next_by_is(&mut self, check: char, by: usize) -> bool {
+        if self.should_trace {
+            self.trace_log(&format!("next_by_is({}, {})", check, by));
+        }
         self.peek_by(by) == check
     }
 
     /// Moves the lexer back by one character, unless at the start.
     pub fn prev(&mut self) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("prev()"))
+        }
         if self.position > 0 {
             self.position -= 1;
         }
@@ -144,6 +209,9 @@ impl<S, T> Rlex<S, T> {
 
     /// Moves the lexer back by a specified number of characters.
     pub fn prev_by(&mut self, mut by: usize) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("prev_by({})", by));
+        }
         while by != 0 {
             self.prev();
             by -= 1;
@@ -153,6 +221,9 @@ impl<S, T> Rlex<S, T> {
 
     /// Moves the lexer backward until a specific character is found or start is reached.
     pub fn prev_until(&mut self, search: char) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("prev_until({})", search));
+        }
         while self.char() != search {
             if self.at_start() {
                 break;
@@ -164,16 +235,25 @@ impl<S, T> Rlex<S, T> {
 
     /// Checks if the previous character matches the given character.
     pub fn prev_is(&mut self, check: char) -> bool {
+        if self.should_trace {
+            self.trace_log(&format!("prev_is({})", check));
+        }
         self.peek_back() == check
     }
 
     /// Checks if the character `by` positions behind matches the given character.
     pub fn prev_by_is(&mut self, check: char, by: usize) -> bool {
+        if self.should_trace {
+            self.trace_log(&format!("prev_by_is({}, {})", check, by));
+        }
         self.peek_back_by(by) == check
     }
 
     /// Returns the character at the current position.
-    pub fn char(&self) -> char {
+    pub fn char(&mut self) -> char {
+        if self.should_trace {
+            self.trace_log(&format!("char() -> {}", self.chars[self.position]));
+        }
         self.chars[self.position]
     }
 
@@ -357,7 +437,11 @@ impl<S, T> Rlex<S, T> {
 
     /// Adds the current character to the internal collection buffer.
     pub fn collect(&mut self) {
-        self.collection.push(self.char());
+        if self.should_trace {
+            self.trace_log(&format!("collect()"));
+        }
+        let char = self.char();
+        self.collection.push(char);
     }
 
     /// Returns the string collected so far from the buffer.
@@ -367,7 +451,7 @@ impl<S, T> Rlex<S, T> {
     }
 
     /// Clears the internal character collection buffer.
-    pub fn collect_reset(&mut self) {
+    pub fn collect_clear(&mut self) {
         self.collection = vec![];
         self.collection_str = "".to_owned();
     }
@@ -415,9 +499,24 @@ enum Token {
 mod tests {
     use super::*;
 
-        #[test]
+    #[test]
+    fn test_trace() {
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
+        r.token_push(Token::Tok1);
+        r.trace_on();
+        r.toks();
+        assert!(r.trace_emit() == "0:toks() -> [Tok1]\n");
+        r.trace_clear();
+        r.src();
+        assert!(r.trace_emit() == "0:src()\n");
+        r.trace_clear();
+        r.token_push(Token::Tok1);
+        assert!(r.trace_emit() == "0:token_push(Tok1)\n");
+    }
+
+    #[test]
     fn test_src() {
-        let r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
+        let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         assert!(r.src() == "abcd");
     }
 
@@ -622,7 +721,7 @@ mod tests {
         assert!(c.unwrap() == 'a');
         r.collect_push('a');
         assert!(r.str_from_collection() == "a");
-        r.collect_reset();
+        r.collect_clear();
         assert!(r.str_from_collection() == "");
     }
 
