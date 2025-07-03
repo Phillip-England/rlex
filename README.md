@@ -137,6 +137,15 @@ r.token_prev(); // Peek at the last token in the collection
 r.token_consume(); // Consumes the lexer and outputs the collected tokens
 ```
 
+### Tracing
+```rust
+r.trace_on() // Turn on the trace system
+r.trace_off() // Turn off the trace system
+r.trace_emit() // Get the trace as a String
+r.trace_clear() // Clear the trace
+```
+
+
 ---
 
 ## License

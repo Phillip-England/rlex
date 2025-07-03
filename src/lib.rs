@@ -15,8 +15,8 @@ pub struct Rlex<S, T> {
     trace: Vec<String>,
 }
 
-impl<S, T> Rlex<S, T> 
-where 
+impl<S, T> Rlex<S, T>
+where
     T: std::fmt::Debug,
     S: std::fmt::Debug,
 {
@@ -55,8 +55,9 @@ where
     }
 
     /// If the trace is on, will push the msg to into the trace
-    pub fn trace_log(&mut self, msg: &str) {
-        self.trace.push(format!("{}:{}", self.trace.len(), msg.to_string()+"\n"));
+    fn trace_log(&mut self, msg: &str) {
+        self.trace
+            .push(format!("{}:{}", self.trace.len(), msg.to_string() + "\n"));
     }
 
     /// Converts the trace into a String and returns it
@@ -66,18 +67,18 @@ where
             trace += &s;
         }
         return trace;
-    }   
+    }
 
     pub fn trace_clear(&mut self) {
         self.trace = vec![];
     }
- 
+
     /// Get a reference to the tokens
     pub fn toks(&mut self) -> &Vec<T> {
         if self.should_trace {
             self.trace_log(&format!("toks() -> {:?}", self.tokens));
         }
-        return &self.tokens
+        return &self.tokens;
     }
 
     /// Get the source
@@ -113,7 +114,10 @@ where
     /// Returns the last token without removing it.
     pub fn token_prev(&mut self) -> Option<&T> {
         if self.should_trace {
-            self.trace_log(&format!("token_prev() -> {:?}", self.tokens.last().map(|s| s)));
+            self.trace_log(&format!(
+                "token_prev() -> {:?}",
+                self.tokens.last().map(|s| s)
+            ));
         }
         return self.tokens.last().map(|s| s);
     }
@@ -259,27 +263,45 @@ where
 
     /// Returns `true` if the lexer is at the end of the input.
     pub fn at_end(&mut self) -> bool {
-        self.position == self.max_position
+        let is_at_end = self.position == self.max_position;
+        if self.should_trace {
+            self.trace_log(&format!("at_end() -> {}", is_at_end));
+        }
+        is_at_end
     }
 
     /// Returns `true` if the lexer is at the beginning of the input.
     pub fn at_start(&mut self) -> bool {
-        self.position == 0
+        let is_at_start = self.position == 0;
+        if self.should_trace {
+            self.trace_log(&format!("at_start() -> {}", is_at_start));
+        }
+        is_at_start
     }
 
     /// Returns `true` if the current position is at the marked position.
     pub fn at_mark(&mut self) -> bool {
-        self.position == self.marked_position
+        let is_at_mark = self.marked_position == self.position;
+        if self.should_trace {
+            self.trace_log(&format!("at_mark() -> {}", is_at_mark));
+        }
+        is_at_mark
     }
 
     /// Marks the current position.
     pub fn mark(&mut self) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("mark()"));
+        }
         self.marked_position = self.position;
         self
     }
 
     /// Moves the current position to a specific index.
     pub fn goto_pos(&mut self, pos: usize) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("goto_pos({})", pos));
+        }
         if pos > self.max_position {
             self.position = self.max_position;
             return self;
@@ -290,18 +312,27 @@ where
 
     /// Moves the current position back to the previously marked index.
     pub fn goto_mark(&mut self) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("goto_mark()"));
+        }
         self.position = self.marked_position;
         self
     }
 
     /// Moves the current position to the start of the input.
     pub fn goto_start(&mut self) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("goto_start()"));
+        }
         self.position = 0;
         self
     }
 
     /// Moves the current position to the end of the input.
     pub fn goto_end(&mut self) -> &Rlex<S, T> {
+        if self.should_trace {
+            self.trace_log(&format!("goto_end()"));
+        }
         self.position = self.max_position;
         self
     }
@@ -312,6 +343,9 @@ where
         self.next();
         let ch = self.char();
         self.goto_pos(start);
+        if self.should_trace {
+            self.trace_log(&format!("peek() -> {}", ch));
+        }
         ch
     }
 
@@ -321,6 +355,9 @@ where
         self.next_by(by);
         let ch = self.char();
         self.goto_pos(start);
+        if self.should_trace {
+            self.trace_log(&format!("peek_by({}) -> {}", by, ch));
+        }
         ch
     }
 
@@ -330,6 +367,9 @@ where
         self.prev();
         let ch = self.char();
         self.goto_pos(start);
+        if self.should_trace {
+            self.trace_log(&format!("peek_back() -> {}", ch));
+        }
         ch
     }
 
@@ -339,11 +379,14 @@ where
         self.prev_by(by);
         let ch = self.char();
         self.goto_pos(start);
+        if self.should_trace {
+            self.trace_log(&format!("peek_back_by({}) -> {}", by, ch));
+        }
         ch
     }
 
     /// Returns a string slice from the source based on start and end positions.
-    pub fn str_from_rng(&self, mut start: usize, mut end: usize) -> &str {
+    pub fn str_from_rng(&mut self, mut start: usize, mut end: usize) -> &str {
         if start > self.max_position {
             start = self.max_position;
         }
@@ -361,7 +404,8 @@ where
             .iter()
             .map(|c| c.len_utf8())
             .sum::<usize>();
-        &self.source[start_byte..start_byte + byte_len]
+        let str = &self.source[start_byte..start_byte + byte_len];
+        return str;
     }
 
     /// Returns a string slice between the marked position and the current position.
@@ -415,7 +459,7 @@ where
     }
 
     /// Checks whether the lexer is currently inside a quoted string.
-    pub fn is_in_quote(&self) -> bool {
+    pub fn is_in_quote(&mut self) -> bool {
         let mut in_big_quote = false;
         let mut in_lil_quote = false;
         let mut escaped = false;
@@ -432,6 +476,10 @@ where
                 in_lil_quote = !in_lil_quote;
             }
         }
+		let result = in_big_quote || in_lil_quote;
+		if self.should_trace {
+			self.trace_log(&format!("is_in_quote() -> {}", result));
+		}
         in_big_quote || in_lil_quote
     }
 
@@ -452,21 +500,30 @@ where
 
     /// Clears the internal character collection buffer.
     pub fn collect_clear(&mut self) {
+		if self.should_trace {
+			self.trace_log(&format!("collect_clear()"))
+		}
         self.collection = vec![];
         self.collection_str = "".to_owned();
     }
 
     /// Removes and returns the last character from the collection buffer.
     pub fn collect_pop(&mut self) -> Option<char> {
-        self.collection.pop()
+		let option = self.collection.pop();
+		if self.should_trace {
+			self.trace_log(&format!("collect_pop() -> {:?}", option));
+		}
+		option
     }
 
     /// Adds a character to the collection buffer.
     pub fn collect_push(&mut self, c: char) {
+		if self.should_trace {
+			self.trace_log(&format!("collect_push({})", c));
+		}
         self.collection.push(c);
     }
 }
-
 
 /// A public default state for when you want an Rlex and don't care about the state
 #[derive(Debug, PartialEq, Eq)]
@@ -479,7 +536,6 @@ pub enum DefaultState {
 pub enum DefaultToken {
     Default,
 }
-
 
 #[derive(Debug, PartialEq, Eq)]
 enum State {
@@ -519,7 +575,6 @@ mod tests {
         let mut r: Rlex<State, Token> = Rlex::new("abcd", State::Init);
         assert!(r.src() == "abcd");
     }
-
 
     #[test]
     fn test_tokens() {
@@ -724,5 +779,4 @@ mod tests {
         r.collect_clear();
         assert!(r.str_from_collection() == "");
     }
-
 }
