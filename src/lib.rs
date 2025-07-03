@@ -386,7 +386,7 @@ where
     }
 
     /// Returns a string slice from the source based on start and end positions.
-    pub fn str_from_rng(&mut self, mut start: usize, mut end: usize) -> &str {
+    pub fn str_from_rng(&self, mut start: usize, mut end: usize) -> &str {
         if start > self.max_position {
             start = self.max_position;
         }
